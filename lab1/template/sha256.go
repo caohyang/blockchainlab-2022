@@ -1,5 +1,12 @@
 package main
 
+func putUint32(x []byte, s uint32) {
+	x[0] = byte(s >> 24)
+	x[1] = byte(s >> 16)
+	x[2] = byte(s >> 8)
+	x[3] = byte(s)
+}
+
 func mySha256(message []byte) [32]byte {
 	//前八个素数平方根的小数部分的前面32位
 	h0 := uint32(0x6a09e667)
@@ -22,6 +29,80 @@ func mySha256(message []byte) [32]byte {
 		0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
 		0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2}
 
+	mlen := len(message)
+	padnum := 64 - (mlen-56+64)%64
+
+	var pad byte
+	for i := 0; i < padnum; i++ {
+		if i == 0 {
+			pad = 0x80
+		} else {
+			pad = 0
+		}
+		message = append(message, pad)
+	}
+	mlen <<= 3
+	s := uint64(mlen)
+	message = append(message, byte(s >> 56))
+	message = append(message, byte(s >> 48))
+	message = append(message, byte(s >> 40))
+	message = append(message, byte(s >> 32))
+	message = append(message, byte(s >> 24))
+	message = append(message, byte(s >> 16))
+	message = append(message, byte(s >> 8))
+	message = append(message, byte(s))
+
+	// reference: https://github.com/didianV5/blockchain/blob/master/encryption/sha256/source/sha256-source.go
+	var w [64]uint32
+	for len(message) >= 64 {
+		for i := 0; i < 16; i++ {
+			j := i * 4
+			w[i] = uint32(message[j])<<24 | uint32(message[j+1])<<16 | uint32(message[j+2])<<8 | uint32(message[j+3])
+		}
+		for i := 16; i < 64; i++ {
+			v1 := w[i-2]
+			t1 := (v1>>17 | v1<<(32-17)) ^ (v1>>19 | v1<<(32-19)) ^ (v1 >> 10)
+			v2 := w[i-15]
+			t2 := (v2>>7 | v2<<(32-7)) ^ (v2>>18 | v2<<(32-18)) ^ (v2 >> 3)
+			w[i] = t1 + w[i-7] + t2 + w[i-16]
+		}
+
+		a, b, c, d, e, f, g, h := h0, h1, h2, h3, h4, h5, h6, h7
+
+		for i := 0; i < 64; i++ {
+			t1 := h + ((e>>6 | e<<(32-6)) ^ (e>>11 | e<<(32-11)) ^ (e>>25 | e<<(32-25))) + ((e & f) ^ (^e & g)) + k[i] + w[i]
+			t2 := ((a>>2 | a<<(32-2)) ^ (a>>13 | a<<(32-13)) ^ (a>>22 | a<<(32-22))) + ((a & b) ^ (a & c) ^ (b & c))
+			h = g
+			g = f
+			f = e
+			e = d + t1
+			d = c
+			c = b
+			b = a
+			a = t1 + t2
+		}
+
+		h0 += a
+		h1 += b
+		h2 += c
+		h3 += d
+		h4 += e
+		h5 += f
+		h6 += g
+		h7 += h
+
+		message = message[64:]
+	}
+	
 	sha256data := [32]byte{}
+	putUint32(sha256data[0:], h0)
+	putUint32(sha256data[4:], h1)
+	putUint32(sha256data[8:], h2)
+	putUint32(sha256data[12:], h3)
+	putUint32(sha256data[16:], h4)
+	putUint32(sha256data[20:], h5)
+	putUint32(sha256data[24:], h6)
+	putUint32(sha256data[28:], h7)
+	
 	return sha256data
 }
