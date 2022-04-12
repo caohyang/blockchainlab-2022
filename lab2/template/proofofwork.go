@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strconv"
+	"fmt"
 	"bytes"
 	"math"
 	"math/big"
@@ -26,18 +28,17 @@ func NewProofOfWork(b *Block) *ProofOfWork {
 // Run performs a proof-of-work
 // implement
 func (pow *ProofOfWork) Run() (int, []byte) {
+	var buffer bytes.Buffer
 	nonce := -1
 
-	var buffer bytes.Buffer
-	// hashdata: []byte
-	hashdata := bytes.Join(pow.block.Data, []byte(""))  
+	hashdata := bytes.Join(pow.block.Data, []byte("")) 	// hashdata: []byte 
 	buffer.Write(hashdata)
 	buffer.Write(pow.block.PrevBlockHash)
 	hashdata = buffer.Bytes()
 	
-	for ; nonce < 0 || Validate(pow) == false ; {
+	for ; nonce < 0 || pow.Validate() == false ; {
 		nonce += 1
-		hexnonce := IntToHex(Int64(nonce))
+		hexnonce := []byte(fmt.Sprintf("%X", nonce))
 
 		buffer.Reset()
 		buffer.Write(hashdata)
@@ -53,9 +54,21 @@ func (pow *ProofOfWork) Run() (int, []byte) {
 // Validate validates block's PoW
 // implement
 func (pow *ProofOfWork) Validate() bool {
-	big1 := new(big.Int).SetString(pow.block.Hash, 16)
-	big2 := big.NewInt(1<<(256-pow.block.Bits))
-	result := big1.cmp(big2)
+	// https://my.oschina.net/robin3d/blog/1862766
+	var buf bytes.Buffer
+	for _, v := range pow.block.Hash {
+		t := strconv.FormatInt(int64(v), 16)
+		if len(t) > 1{
+			buf.WriteString(t)
+		} else {
+			buf.WriteString("0"+t)
+		}
+	}
+
+	big1, _ := new(big.Int).SetString(buf.String(), 16)
+	big2 := new(big.Int).Exp(big.NewInt(2), big.NewInt(int64(256-pow.block.Bits)), nil)
+
+	result := big1.Cmp(big2)
 	if result < 0 {
 		return true
 	} else {

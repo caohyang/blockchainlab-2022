@@ -1,5 +1,5 @@
 package main
-
+/*
 func mySha256(message []byte) [32]byte {
 	//前八个素数平方根的小数部分的前面32位
 	h0 := uint32(0x6a09e667)
@@ -25,3 +25,4 @@ func mySha256(message []byte) [32]byte {
 	sha256data := [32]byte{}
 	return sha256data
 }
+*/
