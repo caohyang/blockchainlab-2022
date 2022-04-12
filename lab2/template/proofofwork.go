@@ -30,18 +30,22 @@ func NewProofOfWork(b *Block) *ProofOfWork {
 func (pow *ProofOfWork) Run() (int, []byte) {
 	var buffer bytes.Buffer
 	nonce := -1
-
-	hashdata := bytes.Join(pow.block.Data, []byte("")) 	// hashdata: []byte 
-	buffer.Write(hashdata)
+	
 	buffer.Write(pow.block.PrevBlockHash)
-	hashdata = buffer.Bytes()
+	
+	hashdata := sha256.Sum256(NewMerkleTree(pow.block.Data).RootNode.Data) 
+	buffer.Write(hashdata[:])
+	
+	buffer.Write([]byte(fmt.Sprintf("%X", pow.block.Timestamp)))
+	buffer.Write([]byte(fmt.Sprintf("%X", pow.block.Bits)))
+	commonhash := buffer.Bytes()
 	
 	for ; nonce < 0 || pow.Validate() == false ; {
 		nonce += 1
 		hexnonce := []byte(fmt.Sprintf("%X", nonce))
 
 		buffer.Reset()
-		buffer.Write(hashdata)
+		buffer.Write(commonhash)
 		buffer.Write(hexnonce)
 		
 		res := sha256.Sum256(buffer.Bytes())
@@ -58,7 +62,7 @@ func (pow *ProofOfWork) Validate() bool {
 	var buf bytes.Buffer
 	for _, v := range pow.block.Hash {
 		t := strconv.FormatInt(int64(v), 16)
-		if len(t) > 1{
+		if len(t) > 1 {
 			buf.WriteString(t)
 		} else {
 			buf.WriteString("0"+t)
