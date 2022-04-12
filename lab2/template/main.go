@@ -86,6 +86,8 @@ func main() {
 				fmt.Printf("Prev. hash: %x\n", block.PrevBlockHash)
 				fmt.Printf("Data: %s\n", block.Data)
 				fmt.Printf("Hash: %x\n", block.Hash)
+				fmt.Printf("TargetBits: %d\n", block.Bits)
+				fmt.Printf("Nonce: %d\n", block.Nonce)
 				pow := NewProofOfWork(block)
 				fmt.Printf("PoW: %s\n", strconv.FormatBool(pow.Validate()))
 				fmt.Println()
